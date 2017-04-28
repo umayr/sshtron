@@ -1,0 +1,8 @@
+package: github.com/umayr/sshtron
+import:
+- package: github.com/dustinkirkland/golang-petname
+- package: github.com/fatih/color
+  version: ^1.4.1
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh
