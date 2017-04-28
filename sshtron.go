@@ -1,4 +1,4 @@
-package main
+package sshtron
 
 import (
 	"bufio"
@@ -126,6 +126,17 @@ type PlayerTrailSegment struct {
 	Pos    Position
 }
 
+type Trail []PlayerTrailSegment
+
+func (t Trail) In(p *Position) bool {
+	for _, seg := range t {
+		if seg.Pos.RoundX() == p.RoundX() && seg.Pos.RoundY() == p.RoundY() {
+			return true
+		}
+	}
+	return false
+}
+
 type Player struct {
 	s *Session
 
@@ -135,15 +146,13 @@ type Player struct {
 	Color     color.Attribute
 	Pos       *Position
 
-	Trail []PlayerTrailSegment
+	Trail Trail
 
 	score float64
 }
 
 // NewPlayer creates a new player. If color is below 1, a random color is chosen
-func NewPlayer(s *Session, worldWidth, worldHeight int,
-	color color.Attribute) *Player {
-
+func NewPlayer(s *Session, worldWidth, worldHeight int, color color.Attribute) *Player {
 	rand.Seed(time.Now().UnixNano())
 
 	startX := rand.Float64() * float64(worldWidth)
@@ -165,7 +174,7 @@ func NewPlayer(s *Session, worldWidth, worldHeight int,
 
 func (p *Player) addTrailSegment(pos Position, marker rune) {
 	segment := PlayerTrailSegment{marker, pos}
-	p.Trail = append([]PlayerTrailSegment{segment}, p.Trail...)
+	p.Trail = append(Trail{segment}, p.Trail...)
 }
 
 func (p *Player) calculateScore(delta float64, playerCount int) float64 {
@@ -278,6 +287,14 @@ func (p *Player) Update(g *Game, delta float64) {
 	}
 
 	p.score = p.calculateScore(delta, len(g.players()))
+}
+
+func (p *Player) color() string {
+	return playerColorNames[p.Color]
+}
+
+func (p *Player) kill(delta float64) {
+	p.score += 0.25 * delta
 }
 
 type ByColor []*Player
@@ -738,6 +755,15 @@ func (g *Game) Update(delta float64) {
 	for player, session := range g.players() {
 		playerPos := fmt.Sprintf("%d,%d", player.Pos.RoundX(), player.Pos.RoundY())
 		if collided := trailCoordMap[playerPos]; collided {
+			for p, _ := range g.players() {
+				if p.Trail.In(player.Pos) {
+					if p.color() == player.color() {
+						break
+					}
+					p.kill(player.score)
+					break
+				}
+			}
 			session.StartOver(g.WorldWidth(), g.WorldHeight())
 		}
 	}

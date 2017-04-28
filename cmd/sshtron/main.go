@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
+
+	"github.com/umayr/sshtron"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -17,7 +19,7 @@ const (
 	defaultHttpPort = "3000"
 )
 
-func handler(conn net.Conn, gm *GameManager, config *ssh.ServerConfig) {
+func handler(conn net.Conn, gm *sshtron.GameManager, config *ssh.ServerConfig) {
 	// Before use, a handshake must be performed on the incoming
 	// net.Conn.
 	_, chans, reqs, err := ssh.NewServerConn(conn, config)
@@ -101,7 +103,7 @@ func main() {
 	config.AddHostKey(private)
 
 	// Create the GameManager
-	gm := NewGameManager()
+	gm := sshtron.NewGameManager()
 	go gm.Run()
 
 	fmt.Printf(
